@@ -1,7 +1,7 @@
 # Info
 This repository contains the primary data supporting the analyses for the study "Foreign Language Learners Show a Kinematic Accent in Their Gestures", a team contribution by Hans Rutger Bosker, Marieke Hoetjes, Wim Pouw, Lieke van Maastricht
  
-#E xtended results
+# Extended results
 For the extended results see here: https://wimpouw.github.io/stress_in_motion_SI/
 
 # Contact
