@@ -1,0 +1,501 @@
+---
+title: "Extended Results of 'Foreign Language Learners Show a Kinematic Accent in Their Gestures'"
+author: "**Hans Rutger Bosker, Marieke Hoetjes, Wim Pouw, Lieke van Maastricht** (shared first authorship among all authors)"
+date: "*July 5, 2023*"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    prettydoc::html_pretty:
+      theme: tactile
+---
+
+```{r setup, echo=FALSE, warning = FALSE, message = FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(ggplot2)      #plotting
+library(plotly)       #plotting
+library(RColorBrewer) #plotting
+library(wesanderson)  #plotting
+library(ggbeeswarm)   #plotting
+library(papaja)       #markdownfeatures
+library(nlme)         #linear mixed regression
+library(plyr)         #data wrangling
+library(lsmeans)      #post-hoc linear mixed regression
+library(tidyr)        #data wrangling
+library(lme4)         #linear mixed regression
+library(simr)         #power analysis
+library(plyr)         #data wrangling
+library(gridExtra)    #plotting
+library(stringr)      #for string
+library(readr)        #for string
+```
+
+
+## Introduction
+
+This Rmarkdown notebook contains a detailed documentation of confirmatory analyses from the [pre-registration](https://osf.io/w2ezs/), followed by exploratory analyses. It contains the statistical code, model syntax, and complete reproducible output and figures. Note that we pre-registered a conservative alpha to reduce false positive errors: we deem any result statistically reliable if and only if *p*-values are lower than the restricted alpha = .05/3 = .0166.
+
+## Loading and cleaning the data
+
+```{r}
+#load in the timing data
+curfolder <- getwd()
+D <- read.csv(paste0(dirname(curfolder), "/ProcessedData/ProcessedTimingData/DD.csv"))
+
+#this is the confirmatory study, so we can replace 'pilot' with 'confirmatory' to avoid confusion
+D$ppn <- str_replace(D$ppn, "Pilot", "Confirmatory")
+
+#rename/code some variables
+D$accent  <- ifelse(D$accent=="yes", "stress mark present", "stress mark absent")
+D$accent  <- factor(D$accent, levels=c("stress mark absent", "stress mark present"))
+D$correct <- factor(D$correct, levels=c("L2 correct", "L2 incorrect & L1 match", "L2 incorrect & L1 mismatch"))
+  #L2 correct: e.g., correctly saying *profeSOR*, with stress on the final syllable
+  #L2 correct & L1 match: e.g., incorrectly saying *proFEsor*, with stress on the native language competitor syllable -fe
+  #L2 correct & L1 mismatch: producing stress on another syllable altogether, e.g., *PROfesor*
+D$stress  <- as.character(D$stress)
+D$stress <- ifelse(D$stress=="same", "stress-matching", "stress-mismatching")
+D$stress <-  factor(D$stress, levels=c("stress-matching", "stress-mismatching"))
+D$condition <-  factor(D$condition, levels=c("nogesture", "gesture"))
+D$ppn <- parse_number(D$ppn)
+
+#add an accuracy variable
+D$accuracy <- ifelse(D$correct== "L2 correct", 1, 0)
+
+#remove a manually coded column with a Dutch name
+D$Handmatig.verschil.L1.L2 <- NULL
+
+
+#create a variable that codes for the direction of (incorrect) stress placement
+D$stressdiff_cat <- ifelse(D$stressed.syllable.L1>D$stressed.syllable.L2, 'L1 follows', ifelse(D$stressed.syllable.L1<D$stressed.syllable.L2, 'L1 precedes', 'L1_L2 match'))
+
+  #Note that somehow the items pragMAtica and ensaLAda were mislabeled.
+  table(D$stressdiff_cat,D$stress)
+  
+  # pragMAtica was mislabeled as stress-mismatching, while it is stress-matching (NL: pragMAtisch)
+  unique(D[D$stressdiff_cat=='L1_L2 match' & D$stress!="stress-matching",]$target)
+  # fix pragMAtica:
+  D$stress[D$stressdiff_cat=='L1_L2 match'] <- 'stress-matching'
+  
+  # ensaLAda was mislabeled as 'L1 precedes', while it is stress-matching (NL: saLAde)
+  unique(D[D$stressdiff_cat!='L1_L2 match' & D$stress=="stress-matching",]$target)
+  # fix ensaLAda:
+  D$stressdiff_cat[D$stress=='stress-matching'] <- 'L1_L2 match'
+  
+  # And now it's correct:
+  table(D$stressdiff_cat,D$stress)
+```
+
+## Exclusions
+
+Two authors (LvM and MH) manually assessed for each trial whether the correct word was produced, or not (e.g., saying a different word, omitting sounds or syllables, disfluencies). In addition, sometimes the forced aligner EasyAlign failed to give output or produced output with unexpected syllable counts. All these trials were excluded (6.74% of total dataset excluded).
+
+```{r}
+#See the Exclusion_info folder for all details.
+exclusions <- read.csv(paste0(dirname(curfolder), '/Exclusion_info/files_met_errors_v4.csv'))
+exclusions$gesturecondition <- str_remove(exclusions$gesturecondition, '.wav')
+  #before exclusions
+  before <- nrow(D)
+  #apply exclusion based on hand-check
+  D <- D[!(paste(D$ppn, D$trial, D$condition) %in% paste(exclusions$ppnr, exclusions$itemID, exclusions$gesturecondition)),]
+  after1 <- nrow(D)
+  changebefore_1 <- (1-(after1/before))*100
+  # now: 3.95% data excluded
+  
+  #then the final exclusions are based on errors with easyalign,
+  #either generating no textgrid at all, or detecting an unexpected number of syllables
+  count(D$error) #types of errrors
+  D <- D[is.na(D$error),]
+  after2 <- nrow(D)
+  changeafter_after2 <- (1-(after2/after1))*100
+  changebefore_after2 <- changebefore_1+changeafter_after2 #total amount of exclusions expressed in percentage
+  # total excluded: 6.74% of data
+  
+  #Finally, there was one trial of the stress-matching item *ensaLAda* that was
+  #incorrectly labeled as "L2 incorrect & L1 match" (which is impossible for stress-matching items).
+  # This happened on a trial where the target was ensaLAda (in Dutch: saLAde)
+  # and the participant pronounced enSAlada.
+  # Therefore, this trial is recoded to: L2 incorrect & L1 mismatch
+  D$correct <- as.character(D$correct)
+  trials_with_wronglabel <- D[D$stress=="stress-matching" & D$correct=="L2 incorrect & L1 match",]
+  len_trials_with_wronglabel <- length(trials_with_wronglabel)
+  #recode the trial with wrong label
+  D$correct[D$stress=="stress-matching" & D$correct=="L2 incorrect & L1 match"] <- "L2 incorrect & L1 mismatch"
+  D$correct <- as.factor(D$correct)
+
+```
+
+## Confirmatory analyses
+
+We pre-registered five confirmatory analyses. The first two concerned acoustic analyses comparing gesture vs. no-gesture conditions. The final three tested the gesture-speech synchrony in time.
+
+* 1A: Does gesturing help learners to more accurately place stress on the correct syllable in the foreign words (relative to no-gesture)?
+* 1B: Does gesturing boost the acoustic markers of stress (relative to no-gesture)?
+* 2A: Do learners produce more variable (i.e., 'sloppy') gesture-speech synchrony is stress-mismatching vs. stress-matching trials due to competition from their native language?
+* 2B: Focusing on stress-mismatching trials: when learners get the stress placement *correct* (i.e., acoustically), does the gestural timing show evidence of temporal attraction towards the native language competitor syllable?
+* 2C: Focusing on stress-mismatching trials: when learners get the stress placement *incorrect* (i.e., incorrectly stressing the native language competitor syllable), does the gestural timing show evidence of temporal attraction towards by the foreign language target syllable?
+
+### ConfRQ.1A: stress placement accuracy
+
+Here we provide a descriptive overview of participants' stress placement accuracy, separately for stress-(mis)matching items.
+
+```{r table0102, echo = FALSE}
+
+tab01 <- data.frame(prop.table(table(D[D$stress=="stress-matching",]$correct))*100)
+colnames(tab01) <- c("accuracy category", "percentage correct")
+
+tab02 <- data.frame(prop.table(table(D[D$stress=="stress-mismatching",]$correct))*100)
+colnames(tab02) <- c("accuracy category", "percentage correct")
+
+apa_table(
+  tab01
+  , align = c("l", rep("r", 3))
+  , caption = "Table 1. Percentage of accurate stress placement trials in stress-matching items."
+)
+apa_table(
+  tab02
+  , align = c("l", rep("r", 3))
+  , caption = "Table 2. Percentage of accurate stress placement trials in stress-mismatching items."
+)
+
+```
+
+Figure 1 plots the percentage of trials with correct stress placement separately for the gesture vs. no-gesture condition, for stress-matching and stress-mismatching items, and for items with or without an orthographic stress mark. Each line represents one participant, with the boxplots showing the group behavior.
+
+```{r, echo = FALSE}
+
+cdat <- ddply(D, c("condition", "ppn"), summarise, acc.percentage=sum(accuracy)/length(accuracy)) 
+
+#stress correct
+a <- ggplot(cdat, aes(x= condition, color = condition, y = acc.percentage))+geom_boxplot(alpha=0.1, size= 0.1) + geom_point(size = 4)+theme_bw()+geom_line(aes(group=ppn), color = "black")
+a <- a + scale_color_manual(values=wes_palette(n=2, name = "Royal1")) 
+a <- a + ylab("percentage of trials correct")
+
+
+#stress correct x stress difference and stress mark present
+cdat2 <- ddply(D, c("condition", "ppn", "stress", "accent"), summarise, acc.percentage=sum(accuracy)/length(accuracy)) 
+
+b <- ggplot(cdat2, aes(x= condition, color = condition, y = acc.percentage))+geom_boxplot(alpha=0.1, size= 0.1) + geom_point(size = 4)+theme_bw()+geom_line(aes(group=ppn), color = "black")+facet_grid(stress~accent)
+b <- b + scale_color_manual(values=wes_palette(n=2, name = "Royal1")) + ylab("percentage of trials correct")
+
+grid.arrange(a, b, nrow=2)
+
+```
+
+To test the effect of gesturing on stress placement accuracy, we first build a base Generalized Linear Mixed Model predicting accuracy (binomial dependent variable), with only random intercepts by Participants and Items (model0). This base model is then extended with the fixed effect condition (gesture vs. no-gesture), stress (stress-matching vs. stress-mismatching) and even the 3-way interaction condition-by-stress-by-accent. However, none of these more complex models showed a significantly better fit to the data. Therefore, we conclude that **gesturing did not influence participants' accuracy in getting the stress placement right**.
+
+```{r, warning = FALSE}
+
+D$ppn <- as.factor(D$ppn)
+#basemodel predicting the overall accuracy
+model0 <- glmer(accuracy ~  1 + (1 | ppn)+(1|target), data = D, family = binomial(link="logit"))
+
+#alternative model with gesture versus nogesture as predictors
+model1 <- glmer(accuracy ~  condition  + (1 | ppn)+(1|target),data = D, family = binomial(link="logit"))
+
+#alternative model with stressmatch versus stressmismatch as predictors
+model2 <- glmer(accuracy ~  stress  + (1 | ppn)+(1|target),data = D, family = binomial(link="logit"))
+
+#alternative model with, stress, accentedness, and gesture versus no gesture as predictors
+model3 <- glmer(accuracy ~  condition*accent*stress + (1|ppn) + (1|target), data = D, family = binomial(link="logit"))
+
+#compare models
+anovcomp01 <- anova(model0, model1, model2, model3) #test difference basemodel versus alternative models
+
+#save model 1 (only condition) results 
+sum1 <- summary(model1) 
+
+#save model 2 (only stress match vs mismatch) results 
+sum2 <- summary(model2)
+
+#save model 3 (3way interaction gesture, stress, accent) results 
+sum3 <- summary(model3)
+
+posthoc3 <- lsmeans(model3, list(pairwise ~ condition|accent|stress),  adjust="bonferroni")
+```
+  
+  <details><summary>Click here for model 1 R output(model coefficients, effect sizes)</summary>
+    ```{r, eval=TRUE}
+    sum1
+    ```
+  </details>
+  
+  <details><summary>Click here for model 2 R output(model coefficients, effect sizes)</summary>
+    ```{r, eval=TRUE}
+    sum2
+    ```
+  </details>
+  
+  <details><summary>Click here for more complex model 3 R output (model coefficients, effect sizes, and posthoc)</summary>
+    ```{r, eval=TRUE}
+    sum3
+   # Dmod2
+    posthoc3
+    ```
+  </details>
+
+### ConfRQ.1B: gesturing boosts peak intensity
+
+Figure 2 plots the three acoustic markers of stress (peak F0, peak envelope, vocal duration) for each stressed syllable (regardless of correct or incorrect placement), split by gesture condition. The last panel gives the acoustic stress score, which is a composite measure that was used for stress detection.
+
+Figure 2. Effect of gesture vs. no gesture on acoustic markers of stress (also only boxplots for visibility)
+```{r, echo = FALSE, message= FALSE, warning = FALSE, fig.width = 7}
+a <- ggplot(D, aes(x = condition, y = D$peakF0z, color = condition)) + geom_quasirandom(alpha=0.2) + geom_boxplot(alpha = 0, color = "black") + scale_color_manual(values=wes_palette(n=2, name = "Royal1"))+ylab("peak F0 (normalized)")+theme_bw()+theme(legend.position = "none")+ theme(axis.text.x=element_text(angle = -70, hjust = 0))
+b <- ggplot(D, aes(x = condition, y = D$peakAMPz, color = condition)) + geom_quasirandom(alpha=0.2) + geom_boxplot(alpha = 0, color = "black") + scale_color_manual(values=wes_palette(n=2, name = "Royal1"))+ylab("peak envelope (normalized)")+theme_bw()+theme(legend.position = "none")+ theme(axis.text.x=element_text(angle = -70, hjust = 0))
+c <- ggplot(D, aes(x = condition, y = D$sDURz, color = condition)) + geom_quasirandom(alpha=0.2) + geom_boxplot(alpha = 0, color = "black") + scale_color_manual(values=wes_palette(n=2, name = "Royal1"))+ylab("vocal duration (normalized)")+theme_bw()+theme(legend.position = "none")+ theme(axis.text.x=element_text(angle = -70, hjust = 0))
+d <- ggplot(D, aes(x = condition, y = stressSCORE, color = condition)) + geom_quasirandom(alpha=0.2) + geom_boxplot(alpha = 0, color = "black") + scale_color_manual(values=wes_palette(n=2, name = "Royal1"))+ylab("stress score (normalized)")+theme_bw()+theme(legend.position = "none")+ theme(axis.text.x=element_text(angle = -70, hjust = 0))
+
+subplot(ggplotly(a), ggplotly(b), ggplotly(c), ggplotly(d), titleY = TRUE,margin = 0.04)
+
+a <- ggplot(D, aes(x = condition, y = D$peakF0z, color = condition))  + geom_boxplot(alpha = 0, color = "black") + scale_color_manual(values=wes_palette(n=2, name = "Royal1"))+ylab("peak F0 (normalized)")+theme_bw()+theme(legend.position = "none")+ theme(axis.text.x=element_text(angle = -70, hjust = 0))
+b <- ggplot(D, aes(x = condition, y = D$peakAMPz, color = condition))  + geom_boxplot(alpha = 0, color = "black") + scale_color_manual(values=wes_palette(n=2, name = "Royal1"))+ylab("peak envelope (normalized)")+theme_bw()+theme(legend.position = "none")+ theme(axis.text.x=element_text(angle = -70, hjust = 0))
+c <- ggplot(D, aes(x = condition, y = D$sDURz, color = condition)) + geom_boxplot(alpha = 0, color = "black") + scale_color_manual(values=wes_palette(n=2, name = "Royal1"))+ylab("vocal duration (normalized)")+theme_bw()+theme(legend.position = "none")+ theme(axis.text.x=element_text(angle = -70, hjust = 0))
+d <- ggplot(D, aes(x = condition, y = stressSCORE, color = condition)) + geom_boxplot(alpha = 0, color = "black") + scale_color_manual(values=wes_palette(n=2, name = "Royal1"))+ylab("stress score (normalized)")+theme_bw()+theme(legend.position = "none")+ theme(axis.text.x=element_text(angle = -70, hjust = 0))
+
+subplot(ggplotly(a), ggplotly(b), ggplotly(c), ggplotly(d), titleY = TRUE,margin = 0.04)
+
+```
+
+We performed a mixed linear regression with normalized acoustic markers as dependent variable, and acoustic marker type (peak F0, peak envelope, and duration) x condition (gesture vs. no-gesture) as independent variables. This analysis includes both correct and incorrect trials. Note that peak envelope was mapped onto the intercept and therefore the simple effect of Condition (positive estimates in model01,model02) reveals that **gesturing boosts the peak envelope in stressed syllables**. The interactions between Condition and Marker (negative estimates) show that this effect only held for peak envelope, not for f0 or duration.
+
+No interactions between Condition and Accuracy were found, suggesting that this intensity-boosting effect of gesture held for similarly across correct and incorrect trials. However, we did find an unexpected simple effect of Accuracy, suggesting that, when speakers produced stress on the correct foreign language target syllable, their peak intensity was higher than when stress placement was incorrect. This may indicate an 'inconfidence effect' on trials where stress was placed incorrectly.
+
+```{r, warning = FALSE}
+Dlong <- gather(D, "marker", "acoust_out", 15:17)
+
+#At present, accuracy is 0 or 1. In order to map the grand mean onto intercept,
+#accuracy_devcod maps 0 onto -0.5 and 1 onto +0.5.
+#This way, simple effects of other predictors hold for the entire dataset,
+#irrespective of accuracy. For instance, the simple effect of gesture
+#tests whether gesturing boosts peak amplitude across both accurate &
+#inaccurate trials.
+Dlong$accuracy_devcod <- Dlong$accuracy - 0.5
+
+#alternative model with gesture versus no gesture as predictor
+model0 <- lme(acoust_out~1, data = Dlong, random =  list(~1|ppn, ~1|target), method = "ML", na.action = na.exclude)
+#model1 <- lme(acoust_out~marker*condition, data = Dlong, random =  list(~1|ppn, ~1|target), method = "ML", na.action = na.exclude)
+model1 <- lme(acoust_out~marker*condition, data = Dlong, random =  list(~1|ppn), method = "ML", na.action = na.exclude)
+model2 <- lme(acoust_out~marker*condition*accuracy_devcod, data = Dlong, random =  list(~1|ppn), method = "ML", na.action = na.exclude)
+anova(model0, model1, model2) #test difference basemodel versus alternative models
+
+#summary model 1 post hoc
+anovamod0mod1 <- anova(model0, model1)
+sum1 <- summary(model1)
+posthocsum1 <- lsmeans(model1, list(pairwise ~ condition|marker),  adjust="bonferroni")
+sum2 <- summary(model2)
+```
+<details><summary>Click here for model 1 R output</summary>
+    ```{r, eval=TRUE}
+    sum1
+    ```
+</details>
+
+<details><summary>Click here for model 2 R output</summary>
+    ```{r, eval=TRUE}
+    sum2
+    ```
+</details>
+
+<details><summary>Click here for posthoc model 1 output</summary>
+    ```{r, eval=TRUE}
+    posthocsum1
+    ```
+</details>
+
+
+### ConfRQ.2A: gesture-speech (a)synchrony
+
+RQ2A asked whether learners show more variable gesture-speech synchrony in stress-mismatching items compared to stress-matching items due to competition from their native language. Figure 3 visualizes the gesture-speech synchrony in stress-matching (yellow) and stress-mismatching (red) items, separately for items with and items without an orthographic stress mark. Time point 0 is the time of the acoustic intensity peak in the stressed syllable. Therefore, trials with a negative gesture-speech synchrony reflect trials where the gesture arrived earlier, and positive gesture-speech synchrony reflects trials where the gesture arrived later than the acoustic intensity peak.
+
+Figure 3. Gesture-speech (a)synchrony depending on stress-(mis)match and stress mark
+```{r, echo = FALSE}
+subD <- subset(D, condition == "gesture")
+a <- ggplot(subD, aes(x= asynchrony, color = stress)) + geom_density(size= 2)+theme_bw()+ylim(1e-12, NA)+facet_grid(.~accent)
+a <- a + scale_color_manual(values=wes_palette(n=2, name = "BottleRocket2")) + ggtitle("asynchrony as a function of stress difference and accent")
+ggplotly(a)
+```
+
+We calculated the absolute asynchrony to be able to quantify the width of these density distributions. Using a similar linear mixed modeling approach as before, we first constructed a base model (model0). This base model is then extended with fixed effects of stress and accent (model1), and their interaction (model2). However, neither of these two more complex models showed a significantly better fit to the data. This indicates that *stress-(mis)match did not influence the absolute asynchrony*. In fact, this is not very surprising because this analysis pools across items where the native language competitor syllable precedes the foreign language target syllable (as in: SP profeSOR vs. NL proFESsor) and items where the competitor syllable follows the target syllable (as in: SP MAquina vs. NL maCHIne). Therefore, RQ 2A and RQ 2B present a more fine-grained insight into the gesture-speech synchrony in stress-mismatching items.
+
+```{r, eval=TRUE}
+subD$abs_asynchrony <- abs(subD$asynchrony)
+#alternative model with gesture versus no gesture as predictor
+model0 <- lme(abs_asynchrony~1, data = subD, random =  list(~1|ppn, ~1|target), method = "ML", na.action = na.exclude)
+model1 <- lme(abs_asynchrony~stress+accent, data = subD, random =  list(~1|ppn, ~1|target), method = "ML", na.action = na.exclude)
+model2 <- lme(abs_asynchrony~stress*accent, data = subD, random =  list(~1|ppn, ~1|target), method = "ML", na.action = na.exclude)
+
+anovmod01 <- anova(model0, model1) #test difference basemodel versus model 1
+anovmod02 <- anova(model0, model2) #test difference basemodel versus model 1
+
+#if interaction effects are reliable we will follow up with post-hocs
+sum1 <- summary(model1)
+sum2 <- summary(model2)
+posthoc2 <- lsmeans(model2, list(pairwise ~ stress|accent),  adjust="bonferroni")
+#Dmod1 <- lme.dscore(model1, subD, type="nlme")
+
+```
+
+
+<details><summary>Click here for posthoc model 1 and 2 output</summary>
+    ```{r, eval=TRUE}
+    sum1
+    sum2
+    posthoc2
+    ```
+</details>
+
+
+### ConfRQ.2B: correct productions
+
+#### Directional gesture-speech (a)synchrony
+
+RQ2A asks: when participants correctly produce acoustic stress on the appropriate foreign language target syllable (i.e., correctly saying *profeSOR*), do the hands show temporal attraction towards the native language competitor syllable? In an item like *profeSOR*, this would show up by the maximum extension of the hand falling **earlier** than the peak intensity of the stressed syllable. However, in an item like *MÁquina* (NL: *maCHIne*), this would mean the hand would **follow** the stressed syllable.
+
+In order to assess this native language attraction across both types of items, we calculated the *directional gesture-speech (a)synchrony*, considering correct trials only. This measure was the original gesture-speech (a)synchrony (time in ms between maximum extension and stress peak intensity), but the sign depended on the position of the native language competitor syllable being earlier or later than the foreign language target syllable. Negative sign meant 'attracted *towards* the native language competitor syllable' and positive sign meant 'attracted *away* from the native language competitor syllable'.
+
+For instance, if the original gesture-speech (a)synchrony on an item like *profeSOR* was +20 ms (i.e., hand falling late relative to the stressed syllable), the directional gesture-speech (a)synchrony was also +20 ms because the Dutch competitor word has stress on the earlier second syllable (*proFESsor*). However, if the original gesture-speech (a)synchrony on an item like *MÁquina* was +40 ms (i.e., hand falling late relative to the stressed syllable), the directional gesture-speech (a)synchrony was -40 ms because the Dutch competitor word has stress on the second syllable (*maCHIne*). With this coding, we predicted *more negative directional gesture-speech (a)synchrony, biased by the native language, in stress-mismatching compared to stress-matching words*.
+
+Figure 4 plots the directional gesture-speech (a)synchrony in stress-mismatching and stress-matching items.
+
+```{r, echo = F}
+library(cowplot)
+#overall asynchrony in L1 direction (left=L1)
+Dsub <- subset(D, (condition == "gesture") & (correct == "L2 correct"))
+a <- ggplot(Dsub, aes(x = stress, y= asynchrony_L2L1))+geom_hline(yintercept = 0, color = "red", size = 0.5)+geom_violin(fill=NA) + geom_quasirandom(color = "black", size = 0.7, alpha = 0.5)+geom_boxplot(alpha = 0)+theme_bw() + coord_flip()
+a <- a +facet_grid(correct~.)
+ggplotly(a)
+```
+
+Figure 5 shows the directional gesture-speech (a)synchrony in stress-mismatching and stress-matching items *for each individual participant*. Participants with more negative directional gesture-speech (a)synchrony in stress-mismatching (upper panels) vs. stress-matching trials (lower panels) would show greater temporal native language competition (e.g., 2, 13, 14, 23)
+
+```{r, echo = T}
+#overall asynchrony in L1 direction (left=L1) by participants
+bypps <- ggplot(Dsub, aes(x = stress, y= asynchrony_L2L1))+
+  geom_hline(yintercept = 0, color = "red", size = 0.5)+geom_violin(fill=NA) +
+  geom_quasirandom(color = "black", size = 0.7, alpha = 0.5)+
+  geom_boxplot(alpha = 0)+theme_bw() + coord_flip() +
+  facet_wrap(~ppn)
+ggplotly(bypps)
+```
+
+Using a similar linear mixed modeling approach as before, we built linear mixed models testing the gesture-speech (a)synchrony (variable name: asynchrony_L2L1). The base model (model0) included random intercepts for Participants and Items only. The model1 extended model0 by including the fixed effect Stress, comparing stress-mismatching to stress-matching (mapped onto the intercept). Model comparison based on a log-likelihood ratio test indicated a significant effect of Stress, with a negative estimate. This indicates that **participants' hands demonstrated native language competition, even when their speech was acoustically correct**.
+
+```{r}
+Dsub <- subset(D, (condition == "gesture") & (correct == "L2 correct"))
+
+model0 <- lme(asynchrony_L2L1~1, data = Dsub, random = list(~1|ppn, ~1|target), method = "ML", na.action = na.exclude)
+
+model1 <- lme(asynchrony_L2L1~stress, data = Dsub, random =  list(~1|ppn, ~1|target), method = "ML", na.action = na.exclude)
+anova(model0, model1) #test difference basemodel versus model 1
+summary(model1) 
+```
+
+#### Raw gesture-speech (a)synchrony.
+
+In order to see the native language attraction more clearly, we also calculated the original gesture-speech (a)synchrony (i.e., not directional) separately for items where the native language competitor syllable **preceded** than the foreign language target syllable (as in: *profeSOR*) and items where the native language competitor syllable **followed** the foreign language target syllable (as in: *MÁquina*). Figure 6 plots the original gesture-speech (a)synchrony (negative = hand is earlier than acoustic stress; positive = hand is later than acoustic stress) for three conditions: stress-mismatching with early native language competitor, stress-mismatching with late native language competitor, and stress-matching trials for comparison. These data are also illustrated in Figure 1 in the manuscript.
+
+The bottom panel shows the stress-matching trials (e.g., SP *bailaRIna* - NL *balleRIna*; panel is identical to bottom panel of Figure 4). These serve as control since we don't expect any native language competition in these items. Indeed, this panel seems to show close gesture-speech synchrony, with gesture generally slightly leading the voice by ca. -40 ms.
+
+The top panel seems to demonstrate more negative gesture-speech (a)synchrony values, while the middle seems to have more positive gesture-speech (a)synchrony -- relative to the stress-matching data. This seems to support our hypothesis that, if the native language competitor syllable precedes the correct foreign language target syllable (top panel), gestures are temporally attracted to fall relatively early. Conversely, if the native language competitor syllable follows the correct foreign language target syllable (middle panel), gestures would be temporally attracted to fall relatively late.
+
+```{r, echo=F}
+#splitted
+Dsub1 <- subset(D, (condition == "gesture") & (correct == "L2 correct") & stressdiff_cat=='L1 precedes')
+a <- ggplot(Dsub1, aes(x = stress, y= asynchrony))+geom_hline(yintercept = 0, color = "red", size = 0.5)+geom_violin(fill=NA) + geom_quasirandom(color = "black", size = 0.7, alpha = 0.5)+geom_boxplot(alpha = 0)+theme_bw() + coord_flip()+ylim(-600, 600)
+Dsub2 <- subset(D, (condition == "gesture") & (correct == "L2 correct") & stressdiff_cat=='L1 follows')
+b <- ggplot(Dsub2, aes(x = stress, y= asynchrony))+geom_hline(yintercept = 0, color = "red", size = 0.5)+geom_violin(fill=NA) + geom_quasirandom(color = "black", size = 0.7, alpha = 0.5)+geom_boxplot(alpha = 0)+theme_bw() + coord_flip()+ylim(-600, 600)
+Dsub3 <- subset(D, (condition == "gesture") & (correct == "L2 correct") & stressdiff_cat=='L1_L2 match')
+c <- ggplot(Dsub3, aes(x = stress, y= asynchrony))+geom_hline(yintercept = 0, color = "red", size = 0.5)+geom_violin(fill=NA) + geom_quasirandom(color = "black", size = 0.7, alpha = 0.5)+geom_boxplot(alpha = 0)+theme_bw() + coord_flip()+ylim(-600, 600)
+
+plot_grid(a, b, c, ncol = 1, align = "v")
+```
+
+These patterns were statistically assessed by means of Linear Mixed Models. The dependent variable was the raw gesture-speech (a)synchrony, with negative values indicating early gesture relative to the acoustic stress and positive values indicating late gesture relative to the acoustic stress (i.e., stressed peak intensity at 0). We first constructed a base model (model0), with only random intercepts for Participants and Items. This model was then compared to model1 that included the predictor stressdiff_cat_iMatch, with the levels: stress-matching (mapped onto the intercept), stress-mismatching -- L1 follows (middle panel in Figure 6), stress-mismatching -- L1 precedes (top panel in Figure 6). This model demonstrated a significantly better fit to the data, showing significant effects in the expected direction for both contrasts (stress-matching vs. L1 follows; stress-matching vs. L1 precedes). Therefore, we find evidence for a **'kinematic accent': even when the voice is accurately stressing the correct foreign language syllable, the hands are temporally attracted towards the native language competitor syllable**.
+
+```{r}
+model0 <- lme(asynchrony~1, data = Dsub, random =  list(~1|ppn, ~1|target), method = "ML", na.action = na.exclude)
+
+# make sure the 'L1_L2 match' is mapped onto the intercept
+Dsub$stressdiff_cat_iMatch <- relevel(as.factor(Dsub$stressdiff_cat),"L1_L2 match")
+
+model3 <- lme(asynchrony~stressdiff_cat_iMatch, data = Dsub, random =  list(~1|ppn, ~1|target), method = "ML", na.action = na.exclude)
+print(anova(model0,model3))
+print(summary(model3))
+```
+
+
+### ConfRQ.2C: incorrect productions
+
+#### Raw gesture-speech (a)synchrony.
+
+We should be careful to immediately interpret the results from RQ2B as indicating that 'accurate gestural timing is acquired after appropriate acoustic stress in foreign language acquisition'. This is because we have not yet investigated RQ2C: what is the temporal attraction of gesture in trials where the voice placed stress on the *incorrect native language competitor syllable*?
+
+Figure 7 has three panels, just like Figure 6. The bottom panel is identical to the bottom panel in Figure 6 for comparision. However, the middle and top panel show new data. These panels show trials where the acoustic stress was *incorrectly placed on the native language competitor syllable* (timepoint zero). In items where the native language competitor syllable precedes the foreign language target syllable (top panel; e.g., showing trials where participants incorrectly said *proFEsor*), we seem to find that the gesture is timed relatively late, being temporally attracted towards the later foreign language target syllable. Conversely, in items where the native language competitor syllable follows the foreign language target syllable (middle panel; e.g., showing trials where participants incorrectly said *máQUIna*), we seem to find that the gesture is timed relatively early, likewise being temporally attracted towards the earlier foreign language target syllable.
+
+```{r, echo=F, warning=F}
+
+#splitted
+DsubA <- subset(D, (condition == "gesture") & (correct == "L2 incorrect & L1 match") & stressdiff_cat=='L1 precedes')
+a <- ggplot(DsubA, aes(x = stress, y= asynchrony))+geom_hline(yintercept = 0, color = "red", size = 0.5)+geom_violin(fill=NA) + geom_quasirandom(color = "black", size = 0.7, alpha = 0.5)+geom_boxplot(alpha = 0)+theme_bw() + coord_flip()+ylim(-600, 600)
+DsubB <- subset(D, (condition == "gesture") & (correct == "L2 incorrect & L1 match") & stressdiff_cat=='L1 follows')
+b <- ggplot(DsubB, aes(x = stress, y= asynchrony))+geom_hline(yintercept = 0, color = "red", size = 0.5)+geom_violin(fill=NA) + geom_quasirandom(color = "black", size = 0.7, alpha = 0.5)+geom_boxplot(alpha = 0)+theme_bw() + coord_flip()+ylim(-600, 600)
+Dsub3 <- subset(D, (condition == "gesture") & (correct == "L2 correct") & stressdiff_cat=='L1_L2 match')
+c <- ggplot(Dsub3, aes(x = stress, y= asynchrony))+geom_hline(yintercept = 0, color = "red", size = 0.5)+geom_violin(fill=NA) + geom_quasirandom(color = "black", size = 0.7, alpha = 0.5)+geom_boxplot(alpha = 0)+theme_bw() + coord_flip()+ylim(-600, 600)
+
+plot_grid(a, b, c, ncol = 1, align = "v")
+```
+
+This converse temporal attraction was tested statistically by means of similar linear mixed models. Once again, we constructed a base model with only random intercepts for Participants and Items (model0). This was then extended in model1 with the same predictor as before, comparing stress-matching to L1-follows and stress-matching to L1-precedes. We found significant effects in the expected directions for both contrasts. This indicates that **when the speakers were incorrectly stressing the native language competitor syllable (e.g., *proFEsor*), their gestures showed temporal attraction towards the correct foreign language target syllable (e.g., falling late)**.
+
+```{r}
+
+# only trials with gesture where stressed is incorrectly produced on L1 target
+Dsub_l2attr <- rbind(DsubA,DsubB,Dsub3)
+Dsub_l2attr$stressdiff_cat_iMatch <- relevel(as.factor(Dsub_l2attr$stressdiff_cat),"L1_L2 match")
+
+#basemodel predicting the overall asynchrony
+model0 <- lme(asynchrony~1, data = Dsub_l2attr, random = list(~1|ppn, ~1|target), method = "ML", na.action = na.exclude)
+
+model1 <- lme(asynchrony~stressdiff_cat_iMatch, data = Dsub_l2attr, random =  list(~1|ppn, ~1|target), method = "ML", na.action = na.exclude)
+print(anova(model0, model1)) #test difference basemodel versus model 1
+print(summary(model1)) 
+```
+## Exploratory analyses
+
+### ExplRQ.1: language proficiency
+
+As an exploratory analysis, we asked whether the 'kinematic accent' would be modulated by the speakers' foreign language proficiency. We argued that perhaps more proficient learners would show less of such a kinematic accent, while less proficient learners would be more likely to show such an accent. We quantified the kinematic accent by subtracting the *directional gesture-speech (a)synchrony* in stress-matching trials from that in stress-mismatching trials (variable name: L1attr). As a result, a more negative effect size would show greater native language attraction (kinematic accent). Consequently, we would predict a positive correlation between the native language attraction and foreign language proficiency: the higher the proficiency, the less negative/more positive the native language attraction value.
+
+We collected self-reported proficiency data according to the Common European Framework of Reference (CEFR), with six levels (A1 < A2 < B1 < B2 < C1 < C2). These were converted into a numeric variable from 1-6 (variable name: proflevel).
+
+```{r, echo = T}
+bypps.async.L2L1 <- as.data.frame(tapply(Dsub$asynchrony_L2L1, list(Dsub$ppn,Dsub$stress), mean))
+bypps.async.L2L1$ppn <- 1:26
+bypps.async.L2L1$L1attr <- bypps.async.L2L1$`stress-mismatching` - bypps.async.L2L1$`stress-matching`
+
+
+proficiency <- read.csv(paste0(dirname(curfolder), "/ProcessedData/ProficiencyData/proficiency_numeric.csv"),sep=";")
+proficiency$ppn <- proficiency$Participant.nummer
+proficiency$proflevel <- proficiency$L2.Spaans
+proficiency <- proficiency[,c("ppn","proflevel")]
+proficiency[is.na(proficiency$proflevel),]$proflevel <- 1
+
+# greater negative values (-100) indicates more L1 attraction, less negative values or even positive values indicate less L1 attraction
+indivdiffs <- merge(bypps.async.L2L1,proficiency,by="ppn")
+print(indivdiffs[order(indivdiffs$L1attr),])
+```
+
+We calculated the Pearson's correlation between native language attraction (L1attr) and foreign language proficiency (proflevel). However, no significant correlation was observed. This is likely due to the lack of sufficient variability in our sample, since most participants reported to be beginning learners of Spanish (A1).
+
+```{r, echo = T}
+
+cor.test(indivdiffs$L1attr,indivdiffs$proflevel)
+```
+
+```{r, echo = F}
+plot.indivdiffs <- ggplot(indivdiffs, aes(x = proflevel, y= L1attr))+
+  geom_point() +
+  geom_smooth(method=lm) +
+  theme_bw()
+ggplotly(plot.indivdiffs)
+```
+
