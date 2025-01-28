@@ -1,6 +1,6 @@
 ---
-title: "Extended Results of 'Foreign Language Learners Show a Kinematic Accent in Their Gestures'"
-author: "**Hans Rutger Bosker, Marieke Hoetjes, Wim Pouw, Lieke van Maastricht** (shared first authorship among all authors)"
+title: "Extended Results of 'Foreign Language Learners Show a Kinematic Accent in Their Co-speech Hand Movements'"
+author: "**Hans Rutger Bosker, Marieke Hoetjes, Doenja Hustin, Wim Pouw, Lieke van Maastricht** (shared first authorship among all authors)"
 date: "*Jan 19, 2024*"
 output: 
   html_document:
