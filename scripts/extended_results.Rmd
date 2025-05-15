@@ -28,6 +28,7 @@ library(plyr)         #data wrangling
 library(gridExtra)    #plotting
 library(stringr)      #for string
 library(readr)        #for string
+library(cowplot)      #for multipanel plots
 ```
 
 
@@ -138,25 +139,31 @@ We pre-registered five confirmatory analyses. The first two concerned acoustic a
 
 Here we provide a descriptive overview of participants' stress placement accuracy, separately for stress-(mis)matching items.
 
-```{r table0102, echo = FALSE}
+Table 1. Percentage of accurate stress placement trials in stress-matching items.
+
+```{r table01, echo = FALSE}
 
 tab01 <- data.frame(prop.table(table(D[D$stress=="stress-matching",]$correct))*100)
 colnames(tab01) <- c("accuracy category", "percentage correct")
 
+apa_table(
+  tab01
+  , align = c("l", rep("r", 3))
+  , caption = " "
+)
+```
+
+Table 2. Percentage of accurate stress placement trials in stress-mismatching items.
+
+```{r table02, echo = FALSE}
 tab02 <- data.frame(prop.table(table(D[D$stress=="stress-mismatching",]$correct))*100)
 colnames(tab02) <- c("accuracy category", "percentage correct")
 
 apa_table(
-  tab01
-  , align = c("l", rep("r", 3))
-  , caption = "Table 1. Percentage of accurate stress placement trials in stress-matching items."
-)
-apa_table(
   tab02
   , align = c("l", rep("r", 3))
-  , caption = "Table 2. Percentage of accurate stress placement trials in stress-mismatching items."
+  , caption = " "
 )
-
 ```
 
 Figure 1 plots the percentage of trials with correct stress placement separately for the gesture vs. no-gesture condition, for stress-matching and stress-mismatching items, and for items with or without an orthographic stress mark. Each line represents one participant, with the boxplots showing the group behavior.
@@ -357,7 +364,6 @@ For instance, if the original gesture-speech (a)synchrony on an item like *profe
 Figure 4 plots the directional gesture-speech (a)synchrony in stress-mismatching and stress-matching items.
 
 ```{r, echo = F}
-library(cowplot)
 #overall asynchrony in L1 direction (left=L1)
 Dsub <- subset(D, (condition == "gesture") & (correct == "L2 correct"))
 a <- ggplot(Dsub, aes(x = stress, y= asynchrony_L2L1))+geom_hline(yintercept = 0, color = "red", size = 0.5)+geom_violin(fill=NA) + geom_quasirandom(color = "black", size = 0.7, alpha = 0.5)+geom_boxplot(alpha = 0)+theme_bw() + coord_flip()
@@ -413,6 +419,8 @@ In order to see the native language attraction more clearly, we also calculated 
 The bottom panel shows the stress-matching trials (e.g., SP *bailaRIna* - NL *balleRIna*; panel is identical to bottom panel of Figure 4). These serve as control since we don't expect any native language competition in these items. Indeed, this panel seems to show close gesture-speech synchrony, with gesture generally slightly leading the voice by ca. -40 ms.
 
 The top panel seems to demonstrate more negative gesture-speech (a)synchrony values, while the middle seems to have more positive gesture-speech (a)synchrony -- relative to the stress-matching data. This seems to support our hypothesis that, if the native language competitor syllable precedes the correct foreign language target syllable (top panel), gestures are temporally attracted to fall relatively early. Conversely, if the native language competitor syllable follows the correct foreign language target syllable (middle panel), gestures would be temporally attracted to fall relatively late.
+
+Figure 6:
 
 ```{r, echo=F}
 #splitted
@@ -478,6 +486,8 @@ We should be careful to immediately interpret the results from RQ2B as indicatin
 
 Figure 7 has three panels, just like Figure 6. The bottom panel is identical to the bottom panel in Figure 6 for comparision. However, the middle and top panel show new data. These panels show trials where the acoustic stress was *incorrectly placed on the native language competitor syllable* (timepoint zero). In items where the native language competitor syllable precedes the foreign language target syllable (top panel; e.g., showing trials where participants incorrectly said *proFEsor*), we seem to find that the gesture is timed relatively late, being temporally attracted towards the later foreign language target syllable. Conversely, in items where the native language competitor syllable follows the foreign language target syllable (middle panel; e.g., showing trials where participants incorrectly said *máQUIna*), we seem to find that the gesture is timed relatively early, likewise being temporally attracted towards the earlier foreign language target syllable.
 
+Figure 7:
+
 ```{r, echo=F, warning=F}
 
 #splitted
@@ -537,6 +547,7 @@ We calculated the Pearson's correlation between native language attraction (L1at
 
 cor.test(indivdiffs$L1attr,indivdiffs$proflevel)
 ```
+Figure 8:
 
 ```{r, echo = F}
 plot.indivdiffs <- ggplot(indivdiffs, aes(x = proflevel, y= L1attr))+
@@ -546,3 +557,49 @@ plot.indivdiffs <- ggplot(indivdiffs, aes(x = proflevel, y= L1attr))+
 ggplotly(plot.indivdiffs)
 ```
 
+
+### ExplRQ.2: 'acoustics-neutral' analysis of kinematic accent
+
+As another exploratory analysis, we asked whether the 'kinematic accent' would also be statistically detectable and reliable if the analysis (e.g., run in ConfRQ.2A) were ignorant to the actually produced acoustics produced by the learners.
+
+That is, the analysis in ConfRQ.2A is dependent on our acoustically-defined stress score. It uses this score to detect which syllable was acoustically most prominent in the learners' speech. Then, it takes this acoustically most prominent syllable and calculates the gesture synchrony relative to this detected syllable, as pre-registered.
+
+However, one may also run an analysis taking the syllable that is phonologically stressed in Spanish as the speech anchor point, irrespective of the actually produced acoustics. For instance, in a word like "profeSOR" with word-final stress in Spanish (note: in Dutch, it's "proFESsor" with stress on -FES-), we would predict to find *more early gestures* in Dutch learners' productions, compared to the stress-matching control condition (e.g., SP "bailaRIna" - NL "balleRIna"). Conversely, in a word like "MAchina" with word-initial stress in Spanish (note: in Dutch, it's "maCHIne" with stress on -CHI-), we would predict to find *more late gestures* in Dutch learners' productions, compared to stress-matching control. Note that, because this analysis is independent from the stress score, we include all gesture trials.
+
+First, we plotted the gesture-speech asynchrony across all gesture trials, this time taking the phonologically stressed syllable (i.e., the "foreign language target syllable") as anchor point (set at 0; see Figure 9).
+
+Figure 9:
+
+```{r, echo = F}
+# now for phon anchor
+D$asynchrony_phon <- D$time_beat - D$time_syl_L2
+Dsub_phon <- subset(D, (condition == "gesture"))
+Dsub1_phon <- subset(D, (condition == "gesture") & stressdiff_cat=='L1 precedes')
+a_phon <- ggplot(Dsub1_phon, aes(x = stress, y= asynchrony_phon))+geom_hline(yintercept = 0, color = "red", size = 0.5)+geom_violin(fill=NA) + geom_quasirandom(color = "black", size = 0.7, alpha = 0.5)+geom_boxplot(alpha = 0)+theme_bw() + coord_flip()+ylim(-730, 600)
+Dsub2_phon <- subset(D, (condition == "gesture") & stressdiff_cat=='L1 follows')
+b_phon <- ggplot(Dsub2_phon, aes(x = stress, y= asynchrony_phon))+geom_hline(yintercept = 0, color = "red", size = 0.5)+geom_violin(fill=NA) + geom_quasirandom(color = "black", size = 0.7, alpha = 0.5)+geom_boxplot(alpha = 0)+theme_bw() + coord_flip()+ylim(-730, 600)
+Dsub3_phon <- subset(D, (condition == "gesture") & stressdiff_cat=='L1_L2 match')
+c_phon <- ggplot(Dsub3_phon, aes(x = stress, y= asynchrony_phon))+geom_hline(yintercept = 0, color = "red", size = 0.5)+geom_violin(fill=NA) + geom_quasirandom(color = "black", size = 0.7, alpha = 0.5)+geom_boxplot(alpha = 0)+theme_bw() + coord_flip()+ylim(-730, 600)
+
+plot_grid(a_phon, b_phon, c_phon, ncol = 1, align = "v")
+```
+
+When comparing this Figure 9 to Figure 6 we see very similar patterns: the top panel seems to have a more negative gesture-speech (a)synchrony than the stress-matching control bottom panel. Conversely, the middle panel seems to have more positive gesture-speech (a)synchrony – relative to the stress-matching control data. These data were statistically tested using a similar model as used for ConfRQ.2A.
+
+```{r, echo = T}
+D$asynchrony_phon <- D$time_beat - D$time_syl_L2
+Dsub_phon <- subset(D, (condition == "gesture"))
+
+model0_phon <- lme(asynchrony_phon~1, data = Dsub_phon, random =  list(~1|ppn, ~1|target), method = "ML", na.action = na.exclude)
+
+# make sure the 'L1_L2 match' is mapped onto the intercept
+Dsub_phon$stressdiff_cat_iMatch <- relevel(as.factor(Dsub_phon$stressdiff_cat),"L1_L2 match")
+
+model3_phon <- lme(asynchrony_phon~stressdiff_cat_iMatch, data = Dsub_phon, random =  list(~1|ppn, ~1|target), method = "ML", na.action = na.exclude)
+print(anova(model0_phon,model3_phon))
+print(summary(model3_phon))
+```
+
+This model confirms that gestures fell significantly later in time in trials where the native competitor syllable followed the foreign language target syllable. Conversely, gestures fell significantly earlier in time in trials where the native competitor syllable preceded the foreign language target syllable. Therefore, even when analyzing our data without making use of our stress score, we find evidence for a kinematic accent in learners' productions.
+
+Finally, note that the present exploratory analysis included all trials with a gesture, without considering how our learners pronounced the words. One might have argued that this exploratory analysis should not have found any evidence for a kinematic accent because the kinematic accent had opposite directions in 'correct' (ConfRQ.2A) vs. 'incorrect' productions (ConfRQ.2B). Perhaps that should have cancelled out any effect when considering all trials with a gesture, irrespective of the acoustics. However, one should consider that the data used in ConfRQ.2A included 53% of all stress-mismatching cognate trials, while ConfRQ.2B only included 27% of all stress-mismatching cognate trials. This accounts for why the present exploratory analysis is qualitatively similar to ConfRQ.2A.
