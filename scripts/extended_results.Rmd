@@ -1,13 +1,50 @@
 ---
-title: "Extended Results of 'Foreign Language Learners Show a Kinematic Accent in Their Co-speech Hand Movements'"
-author: "**Hans Rutger Bosker, Marieke Hoetjes, Doenja Hustin, Wim Pouw, Lieke van Maastricht** (shared first authorship among all authors)"
-date: "*Jan 19, 2024*"
-output: 
-  html_document:
+title: "Foreign Language Learners Show a Kinematic Accent in Their Co-speech Hand Movements"
+description: | 
+  Extended Results
+author:
+- name: Hans Rutger Bosker
+  corresponding: yes
+  email: hansrutger.bosker@donders.ru.nl
+  url: https://hrbosker.github.io/
+  affiliation: Donders Institute for Brain, Cognition and Behaviour, Radboud University
+  affiliation_url: https://www.ru.nl/donders/
+  orcid_id: 0000-0002-2628-7738
+  address: Thomas van Aquinolaan 4, 6525 AJ Nijmegen, The Netherlands
+- name: Marieke Hoetjes
+  url: https://www.mariekehoetjes.nl/
+  affiliation: Center for Language Studies, Radboud University
+  affiliation_url: https://www.ru.nl/
+  #orcid_id: 
+- name: Doenja Hustin
+  affiliation: Centre for Language Studies, Radboud University
+  affiliation_url: https://www.ru.nl/
+  #orcid_id: 
+- name: Wim Pouw
+  url: https://wimpouw.com/
+  affiliation: Department of Computational Cognitive Science, Research Center for Cognitive Science & Artificial Intelligence, Tilburg University
+  affiliation_url: https://www.ru.nl/donders/
+  orcid_id: 0000-0003-2729-6502
+- name: Lieke van Maastricht
+  affiliation: Centre for Language Studies, Radboud University
+  affiliation_url: https://www.ru.nl/cls/
+  #orcid_id: 
+output:
+  distill::distill_article:
     toc: true
+    toc_depth: 2
     toc_float: true
-    prettydoc::html_pretty:
-      theme: tactile
+# output: word_document
+# always_allow_html: true
+floatsintext: yes
+figurelist: no
+tablelist: no
+footnotelist: no
+linenumbers: yes
+mask: no
+draft: no
+noextraspace: yes
+link-citations: yes
 ---
 
 ```{r setup, echo=FALSE, warning = FALSE, message = FALSE}
@@ -67,7 +104,8 @@ D$Handmatig.verschil.L1.L2 <- NULL
 
 
 #create a variable that codes for the direction of (incorrect) stress placement
-D$stressdiff_cat <- ifelse(D$stressed.syllable.L1>D$stressed.syllable.L2, 'L1 follows', ifelse(D$stressed.syllable.L1<D$stressed.syllable.L2, 'L1 precedes', 'L1_L2 match'))
+D$stressdiff_cat <- ifelse(D$stressed.syllable.L1>D$stressed.syllable.L2, 'L1 follows', 
+                           ifelse(D$stressed.syllable.L1<D$stressed.syllable.L2, 'L1 precedes', 'L1_L2 match'))
 
   #Note that somehow the items pragMAtica and ensaLAda were mislabeled.
   table(D$stressdiff_cat,D$stress)
@@ -168,7 +206,7 @@ apa_table(
 
 Figure 1 plots the percentage of trials with correct stress placement separately for the gesture vs. no-gesture condition, for stress-matching and stress-mismatching items, and for items with or without an orthographic stress mark. Each line represents one participant, with the boxplots showing the group behavior.
 
-```{r, echo = FALSE}
+```{r, echo = FALSE, fig.cap="Percentage of trials with correct stress placement."}
 
 cdat <- ddply(D, c("condition", "ppn"), summarise, acc.percentage=sum(accuracy)/length(accuracy)) 
 
@@ -244,19 +282,27 @@ posthoc3 <- lsmeans(model3, list(pairwise ~ condition|accent|stress),  adjust="b
 
 Figure 2 plots the three acoustic markers of stress (peak F0, peak envelope, vocal duration) for each stressed syllable (regardless of correct or incorrect placement), split by gesture condition. The last panel gives the acoustic stress score, which is a composite measure that was used for stress detection.
 
-Figure 2. Effect of gesture vs. no gesture on acoustic markers of stress (also only boxplots for visibility)
-```{r, echo = FALSE, message= FALSE, warning = FALSE, fig.width = 7}
-a <- ggplot(D, aes(x = condition, y = D$peakF0z, color = condition)) + geom_quasirandom(alpha=0.2) + geom_boxplot(alpha = 0, color = "black") + scale_color_manual(values=wes_palette(n=2, name = "Royal1"))+ylab("peak F0 (normalized)")+theme_bw()+theme(legend.position = "none")+ theme(axis.text.x=element_text(angle = -70, hjust = 0))
-b <- ggplot(D, aes(x = condition, y = D$peakAMPz, color = condition)) + geom_quasirandom(alpha=0.2) + geom_boxplot(alpha = 0, color = "black") + scale_color_manual(values=wes_palette(n=2, name = "Royal1"))+ylab("peak envelope (normalized)")+theme_bw()+theme(legend.position = "none")+ theme(axis.text.x=element_text(angle = -70, hjust = 0))
-c <- ggplot(D, aes(x = condition, y = D$sDURz, color = condition)) + geom_quasirandom(alpha=0.2) + geom_boxplot(alpha = 0, color = "black") + scale_color_manual(values=wes_palette(n=2, name = "Royal1"))+ylab("vocal duration (normalized)")+theme_bw()+theme(legend.position = "none")+ theme(axis.text.x=element_text(angle = -70, hjust = 0))
-d <- ggplot(D, aes(x = condition, y = stressSCORE, color = condition)) + geom_quasirandom(alpha=0.2) + geom_boxplot(alpha = 0, color = "black") + scale_color_manual(values=wes_palette(n=2, name = "Royal1"))+ylab("stress score (normalized)")+theme_bw()+theme(legend.position = "none")+ theme(axis.text.x=element_text(angle = -70, hjust = 0))
+
+```{r, echo = FALSE, message= FALSE, warning = FALSE, fig.width = 7, fig.cap="Effect of gesture vs. no gesture on acoustic markers of stress (also only boxplots for visibility"}
+a <- ggplot(D, aes(x = condition, y = D$peakF0z, color = condition)) + geom_quasirandom(alpha=0.2) + 
+  geom_boxplot(alpha = 0, color = "black") + scale_color_manual(values=wes_palette(n=2, name = "Royal1"))+ylab("peak F0 (normalized)")+theme_bw()+theme(legend.position = "none")+ theme(axis.text.x=element_text(angle = -70, hjust = 0))
+b <- ggplot(D, aes(x = condition, y = D$peakAMPz, color = condition)) + geom_quasirandom(alpha=0.2) + 
+  geom_boxplot(alpha = 0, color = "black") + scale_color_manual(values=wes_palette(n=2, name = "Royal1"))+ylab("peak envelope (normalized)")+theme_bw()+theme(legend.position = "none")+ theme(axis.text.x=element_text(angle = -70, hjust = 0))
+c <- ggplot(D, aes(x = condition, y = D$sDURz, color = condition)) + geom_quasirandom(alpha=0.2) + 
+  geom_boxplot(alpha = 0, color = "black") + scale_color_manual(values=wes_palette(n=2, name = "Royal1"))+ylab("vocal duration (normalized)")+theme_bw()+theme(legend.position = "none")+ theme(axis.text.x=element_text(angle = -70, hjust = 0))
+d <- ggplot(D, aes(x = condition, y = stressSCORE, color = condition)) + geom_quasirandom(alpha=0.2) + 
+  geom_boxplot(alpha = 0, color = "black") + scale_color_manual(values=wes_palette(n=2, name = "Royal1"))+ylab("stress score (normalized)")+theme_bw()+theme(legend.position = "none")+ theme(axis.text.x=element_text(angle = -70, hjust = 0))
 
 subplot(ggplotly(a), ggplotly(b), ggplotly(c), ggplotly(d), titleY = TRUE,margin = 0.04)
 
-a <- ggplot(D, aes(x = condition, y = D$peakF0z, color = condition))  + geom_boxplot(alpha = 0, color = "black") + scale_color_manual(values=wes_palette(n=2, name = "Royal1"))+ylab("peak F0 (normalized)")+theme_bw()+theme(legend.position = "none")+ theme(axis.text.x=element_text(angle = -70, hjust = 0))
-b <- ggplot(D, aes(x = condition, y = D$peakAMPz, color = condition))  + geom_boxplot(alpha = 0, color = "black") + scale_color_manual(values=wes_palette(n=2, name = "Royal1"))+ylab("peak envelope (normalized)")+theme_bw()+theme(legend.position = "none")+ theme(axis.text.x=element_text(angle = -70, hjust = 0))
-c <- ggplot(D, aes(x = condition, y = D$sDURz, color = condition)) + geom_boxplot(alpha = 0, color = "black") + scale_color_manual(values=wes_palette(n=2, name = "Royal1"))+ylab("vocal duration (normalized)")+theme_bw()+theme(legend.position = "none")+ theme(axis.text.x=element_text(angle = -70, hjust = 0))
-d <- ggplot(D, aes(x = condition, y = stressSCORE, color = condition)) + geom_boxplot(alpha = 0, color = "black") + scale_color_manual(values=wes_palette(n=2, name = "Royal1"))+ylab("stress score (normalized)")+theme_bw()+theme(legend.position = "none")+ theme(axis.text.x=element_text(angle = -70, hjust = 0))
+a <- ggplot(D, aes(x = condition, y = D$peakF0z, color = condition))  + geom_boxplot(alpha = 0, color = "black") + scale_color_manual(values=wes_palette(n=2, name = "Royal1"))+ylab("peak F0 (normalized)")+
+  theme_bw()+theme(legend.position = "none")+ theme(axis.text.x=element_text(angle = -70, hjust = 0))
+b <- ggplot(D, aes(x = condition, y = D$peakAMPz, color = condition))  + geom_boxplot(alpha = 0, color = "black") + scale_color_manual(values=wes_palette(n=2, name = "Royal1"))+ylab("peak envelope (normalized)")+
+  theme_bw()+theme(legend.position = "none")+ theme(axis.text.x=element_text(angle = -70, hjust = 0))
+c <- ggplot(D, aes(x = condition, y = D$sDURz, color = condition)) + geom_boxplot(alpha = 0, color = "black") + scale_color_manual(values=wes_palette(n=2, name = "Royal1"))+ylab("vocal duration (normalized)")+
+  theme_bw()+theme(legend.position = "none")+ theme(axis.text.x=element_text(angle = -70, hjust = 0))
+d <- ggplot(D, aes(x = condition, y = stressSCORE, color = condition)) + geom_boxplot(alpha = 0, color = "black") + scale_color_manual(values=wes_palette(n=2, name = "Royal1"))+ylab("stress score (normalized)")+
+  theme_bw()+theme(legend.position = "none")+ theme(axis.text.x=element_text(angle = -70, hjust = 0))
 
 subplot(ggplotly(a), ggplotly(b), ggplotly(c), ggplotly(d), titleY = TRUE,margin = 0.04)
 
@@ -278,10 +324,13 @@ Dlong <- gather(D, "marker", "acoust_out", 15:17)
 Dlong$accuracy_devcod <- Dlong$accuracy - 0.5
 
 #alternative model with gesture versus no gesture as predictor
-model0 <- lme(acoust_out~1, data = Dlong, random =  list(~1|ppn, ~1|target), method = "ML", na.action = na.exclude)
+model0 <- lme(acoust_out~1, data = Dlong, random =  list(~1|ppn, ~1|target), 
+              method = "ML", na.action = na.exclude)
 #model1 <- lme(acoust_out~marker*condition, data = Dlong, random =  list(~1|ppn, ~1|target), method = "ML", na.action = na.exclude)
-model1 <- lme(acoust_out~marker*condition, data = Dlong, random =  list(~1|ppn), method = "ML", na.action = na.exclude)
-model2 <- lme(acoust_out~marker*condition*accuracy_devcod, data = Dlong, random =  list(~1|ppn), method = "ML", na.action = na.exclude)
+model1 <- lme(acoust_out~marker*condition, data = Dlong, random =  list(~1|ppn), 
+              method = "ML", na.action = na.exclude)
+model2 <- lme(acoust_out~marker*condition*accuracy_devcod, data = Dlong, random =  list(~1|ppn), 
+              method = "ML", na.action = na.exclude)
 anova(model0, model1, model2) #test difference basemodel versus alternative models
 
 #summary model 1 post hoc
@@ -313,11 +362,12 @@ sum2 <- summary(model2)
 
 RQ2A asked whether learners show more variable gesture-speech synchrony in stress-mismatching items compared to stress-matching items due to competition from their native language. Figure 3 visualizes the gesture-speech synchrony in stress-matching (yellow) and stress-mismatching (red) items, separately for items with and items without an orthographic stress mark. Time point 0 is the time of the acoustic intensity peak in the stressed syllable. Therefore, trials with a negative gesture-speech synchrony reflect trials where the gesture arrived earlier, and positive gesture-speech synchrony reflects trials where the gesture arrived later than the acoustic intensity peak.
 
-Figure 3. Gesture-speech (a)synchrony depending on stress-(mis)match and stress mark
-```{r, echo = FALSE}
+```{r, echo = FALSE, fig.cap="Gesture-speech (a)synchrony depending on stress-(mis)match and stress mark"}
 subD <- subset(D, condition == "gesture")
-a <- ggplot(subD, aes(x= asynchrony, color = stress)) + geom_density(size= 2)+theme_bw()+ylim(1e-12, NA)+facet_grid(.~accent)
-a <- a + scale_color_manual(values=wes_palette(n=2, name = "BottleRocket2")) + ggtitle("asynchrony as a function of stress difference and accent")
+a <- ggplot(subD, aes(x= asynchrony, color = stress)) + geom_density(size= 2)+
+  theme_bw()+ylim(1e-12, NA)+facet_grid(.~accent)
+a <- a + scale_color_manual(values=wes_palette(n=2, name = "BottleRocket2")) + 
+  ggtitle("asynchrony as a function of stress difference and accent")
 ggplotly(a)
 ```
 
@@ -363,17 +413,19 @@ For instance, if the original gesture-speech (a)synchrony on an item like *profe
 
 Figure 4 plots the directional gesture-speech (a)synchrony in stress-mismatching and stress-matching items.
 
-```{r, echo = F}
+```{r, echo = F, fig.cap="Directional gesture-speech (a)synchrony in stress-mismatching and stress-matching items."}
 #overall asynchrony in L1 direction (left=L1)
 Dsub <- subset(D, (condition == "gesture") & (correct == "L2 correct"))
-a <- ggplot(Dsub, aes(x = stress, y= asynchrony_L2L1))+geom_hline(yintercept = 0, color = "red", size = 0.5)+geom_violin(fill=NA) + geom_quasirandom(color = "black", size = 0.7, alpha = 0.5)+geom_boxplot(alpha = 0)+theme_bw() + coord_flip()
+a <- ggplot(Dsub, aes(x = stress, y= asynchrony_L2L1))+
+  geom_hline(yintercept = 0, color = "red", size = 0.5)+geom_violin(fill=NA) + 
+  geom_quasirandom(color = "black", size = 0.7, alpha = 0.5)+geom_boxplot(alpha = 0)+theme_bw() + coord_flip()
 a <- a +facet_grid(correct~.)
 ggplotly(a)
 ```
 
 Figure 5 shows the directional gesture-speech (a)synchrony in stress-mismatching and stress-matching items *for each individual participant*. Participants with more negative directional gesture-speech (a)synchrony in stress-mismatching (upper panels) vs. stress-matching trials (lower panels) would show greater temporal native language competition (e.g., 2, 13, 14, 23)
 
-```{r, echo = T}
+```{r, echo = T, fig.cap="Directional gesture-speech (a)synchrony in stress-mismatching and stress-matching items."}
 #overall asynchrony in L1 direction (left=L1) by participants
 bypps <- ggplot(Dsub, aes(x = stress, y= asynchrony_L2L1))+
   geom_hline(yintercept = 0, color = "red", size = 0.5)+geom_violin(fill=NA) +
@@ -388,9 +440,11 @@ Using a similar linear mixed modeling approach as before, we built linear mixed 
 ```{r}
 Dsub <- subset(D, (condition == "gesture") & (correct == "L2 correct"))
 
-model0 <- lme(asynchrony_L2L1~1, data = Dsub, random = list(~1|ppn, ~1|target), method = "ML", na.action = na.exclude)
+model0 <- lme(asynchrony_L2L1~1, data = Dsub, random = list(~1|ppn, ~1|target), 
+              method = "ML", na.action = na.exclude)
 
-model1 <- lme(asynchrony_L2L1~stress, data = Dsub, random =  list(~1|ppn, ~1|target), method = "ML", na.action = na.exclude)
+model1 <- lme(asynchrony_L2L1~stress, data = Dsub, random =  list(~1|ppn, ~1|target), 
+              method = "ML", na.action = na.exclude)
 print(anova(model0, model1)) #test difference basemodel versus model 1
 summary(model1) 
 ```
@@ -405,9 +459,11 @@ Model comparison based on a log-likelihood ratio test indicated a significant ef
 Dsub_mismatching <- subset(D, (condition == "gesture") & (correct == "L2 correct") & (stressdiff_cat != "L1_L2 match"))
 Dsub_mismatching$distance <- abs(Dsub_mismatching$stressed.syllable.L1 - Dsub_mismatching$stressed.syllable.L2)
 
-model0 <- lme(asynchrony_L2L1~1, data = Dsub_mismatching, random = list(~1|ppn, ~1|target), method = "ML", na.action = na.exclude)
+model0 <- lme(asynchrony_L2L1~1, data = Dsub_mismatching, random = list(~1|ppn, ~1|target), 
+              method = "ML", na.action = na.exclude)
 
-model1 <- lme(asynchrony_L2L1~distance, data = Dsub_mismatching, random =  list(~1|ppn, ~1|target), method = "ML", na.action = na.exclude)
+model1 <- lme(asynchrony_L2L1~distance, data = Dsub_mismatching, random =  list(~1|ppn, ~1|target), 
+              method = "ML", na.action = na.exclude)
 print(anova(model0, model1)) #test difference basemodel versus model 1
 summary(model1) 
 ```
@@ -420,9 +476,8 @@ The bottom panel shows the stress-matching trials (e.g., SP *bailaRIna* - NL *ba
 
 The top panel seems to demonstrate more negative gesture-speech (a)synchrony values, while the middle seems to have more positive gesture-speech (a)synchrony -- relative to the stress-matching data. This seems to support our hypothesis that, if the native language competitor syllable precedes the correct foreign language target syllable (top panel), gestures are temporally attracted to fall relatively early. Conversely, if the native language competitor syllable follows the correct foreign language target syllable (middle panel), gestures would be temporally attracted to fall relatively late.
 
-Figure 6:
 
-```{r, echo=F}
+```{r, echo=F, fig.cap= "Raw gesture-speech (a)synchrony in stress-mismatching and stress-matching items."}
 #splitted
 Dsub1 <- subset(D, (condition == "gesture") & (correct == "L2 correct") & stressdiff_cat=='L1 precedes')
 a <- ggplot(Dsub1, aes(x = stress, y= asynchrony))+geom_hline(yintercept = 0, color = "red", size = 0.5)+geom_violin(fill=NA) + geom_quasirandom(color = "black", size = 0.7, alpha = 0.5)+geom_boxplot(alpha = 0)+theme_bw() + coord_flip()+ylim(-600, 600)
@@ -437,12 +492,14 @@ plot_grid(a, b, c, ncol = 1, align = "v")
 These patterns were statistically assessed by means of Linear Mixed Models. The dependent variable was the raw gesture-speech (a)synchrony, with negative values indicating early gesture relative to the acoustic stress and positive values indicating late gesture relative to the acoustic stress (i.e., stressed peak intensity at 0). We first constructed a base model (model0), with only random intercepts for Participants and Items. This model was then compared to model1 that included the predictor stressdiff_cat_iMatch, with the levels: stress-matching (mapped onto the intercept), stress-mismatching -- L1 follows (middle panel in Figure 6), stress-mismatching -- L1 precedes (top panel in Figure 6). This model demonstrated a significantly better fit to the data, showing significant effects in the expected direction for both contrasts (stress-matching vs. L1 follows; stress-matching vs. L1 precedes). Therefore, we find evidence for a **'kinematic accent': even when the voice is accurately stressing the correct foreign language syllable, the hands are temporally attracted towards the native language competitor syllable**.
 
 ```{r}
-model0 <- lme(asynchrony~1, data = Dsub, random =  list(~1|ppn, ~1|target), method = "ML", na.action = na.exclude)
+model0 <- lme(asynchrony~1, data = Dsub, random =  list(~1|ppn, ~1|target), 
+              method = "ML", na.action = na.exclude)
 
 # make sure the 'L1_L2 match' is mapped onto the intercept
 Dsub$stressdiff_cat_iMatch <- relevel(as.factor(Dsub$stressdiff_cat),"L1_L2 match")
 
-model3 <- lme(asynchrony~stressdiff_cat_iMatch, data = Dsub, random =  list(~1|ppn, ~1|target), method = "ML", na.action = na.exclude)
+model3 <- lme(asynchrony~stressdiff_cat_iMatch, data = Dsub, random =  list(~1|ppn, ~1|target), 
+              method = "ML", na.action = na.exclude)
 print(anova(model0,model3))
 print(summary(model3))
 ```
@@ -459,21 +516,27 @@ This analysis qualitatively replicated the results presented above, showing sign
 length(unique(Dsub[Dsub$stressdiff_cat == "L1 follows" & Dsub$stressed.syllable.L2==1,]$target))
 unique(Dsub[Dsub$stressdiff_cat == "L1 follows" & Dsub$stressed.syllable.L2==1,]$target)
 
-length(unique(Dsub[Dsub$stressdiff_cat == "L1 precedes" & Dsub$stressed.syllable.L2==Dsub$Nsyllables_correct,]$target))
-unique(Dsub[Dsub$stressdiff_cat == "L1 precedes" & Dsub$stressed.syllable.L2==Dsub$Nsyllables_correct,]$target)
+length(unique(Dsub[Dsub$stressdiff_cat == "L1 precedes" & 
+                     Dsub$stressed.syllable.L2==Dsub$Nsyllables_correct,]$target))
+unique(Dsub[Dsub$stressdiff_cat == "L1 precedes" & 
+              Dsub$stressed.syllable.L2==Dsub$Nsyllables_correct,]$target)
 
 Dsub_excl <- Dsub
 Dsub_excl$excludeditems <- 0
-Dsub_excl[Dsub_excl$stressdiff_cat == "L1 follows" & Dsub_excl$stressed.syllable.L2==1,]$excludeditems <- 1
-Dsub_excl[Dsub_excl$stressdiff_cat == "L1 precedes" & Dsub_excl$stressed.syllable.L2==Dsub_excl$Nsyllables_correct,]$excludeditems <- 1
+Dsub_excl[Dsub_excl$stressdiff_cat == "L1 follows" & 
+            Dsub_excl$stressed.syllable.L2==1,]$excludeditems <- 1
+Dsub_excl[Dsub_excl$stressdiff_cat == "L1 precedes" & 
+            Dsub_excl$stressed.syllable.L2==Dsub_excl$Nsyllables_correct,]$excludeditems <- 1
 Dsub_excl <- Dsub_excl[Dsub_excl$excludeditems!=1,]
 
-model0_excl <- lme(asynchrony~1, data = Dsub_excl, random =  list(~1|ppn, ~1|target), method = "ML", na.action = na.exclude)
+model0_excl <- lme(asynchrony~1, data = Dsub_excl, random =  list(~1|ppn, ~1|target), 
+                   method = "ML", na.action = na.exclude)
 
 # make sure the 'L1_L2 match' is mapped onto the intercept
 Dsub_excl$stressdiff_cat_iMatch <- relevel(as.factor(Dsub_excl$stressdiff_cat),"L1_L2 match")
 
-model3_excl <- lme(asynchrony~stressdiff_cat_iMatch, data = Dsub_excl, random =  list(~1|ppn, ~1|target), method = "ML", na.action = na.exclude)
+model3_excl <- lme(asynchrony~stressdiff_cat_iMatch, data = Dsub_excl, random =  list(~1|ppn, ~1|target), 
+                   method = "ML", na.action = na.exclude)
 print(anova(model0_excl,model3_excl))
 print(summary(model3_excl))
 ```
@@ -488,7 +551,7 @@ Figure 7 has three panels, just like Figure 6. The bottom panel is identical to 
 
 Figure 7:
 
-```{r, echo=F, warning=F}
+```{r, echo=F, warning=F, fig.cap= "Raw gesture-speech (a)synchrony in stress-mismatching and stress-matching items."}
 
 #splitted
 DsubA <- subset(D, (condition == "gesture") & (correct == "L2 incorrect & L1 match") & stressdiff_cat=='L1 precedes')
@@ -510,9 +573,11 @@ Dsub_l2attr <- rbind(DsubA,DsubB,Dsub3)
 Dsub_l2attr$stressdiff_cat_iMatch <- relevel(as.factor(Dsub_l2attr$stressdiff_cat),"L1_L2 match")
 
 #basemodel predicting the overall asynchrony
-model0 <- lme(asynchrony~1, data = Dsub_l2attr, random = list(~1|ppn, ~1|target), method = "ML", na.action = na.exclude)
+model0 <- lme(asynchrony~1, data = Dsub_l2attr, random = list(~1|ppn, ~1|target), 
+              method = "ML", na.action = na.exclude)
 
-model1 <- lme(asynchrony~stressdiff_cat_iMatch, data = Dsub_l2attr, random =  list(~1|ppn, ~1|target), method = "ML", na.action = na.exclude)
+model1 <- lme(asynchrony~stressdiff_cat_iMatch, data = Dsub_l2attr, random =  list(~1|ppn, ~1|target), 
+              method = "ML", na.action = na.exclude)
 print(anova(model0, model1)) #test difference basemodel versus model 1
 print(summary(model1)) 
 ```
@@ -549,7 +614,7 @@ cor.test(indivdiffs$L1attr,indivdiffs$proflevel)
 ```
 Figure 8:
 
-```{r, echo = F}
+```{r, echo = F, fig.cap="Scatterplot of individual native language attraction as a function of foreign language proficiency."}
 plot.indivdiffs <- ggplot(indivdiffs, aes(x = proflevel, y= L1attr))+
   geom_point() +
   geom_smooth(method=lm) +
@@ -570,7 +635,7 @@ First, we plotted the gesture-speech asynchrony across all gesture trials, this 
 
 Figure 9:
 
-```{r, echo = F}
+```{r, echo = F, fig.cap= "Raw gesture-speech (a)synchrony relative to the phonologically stressed syllable in stress-mismatching and stress-matching items."}
 # now for phon anchor
 D$asynchrony_phon <- D$time_beat - D$time_syl_L2
 Dsub_phon <- subset(D, (condition == "gesture"))
@@ -590,12 +655,14 @@ When comparing this Figure 9 to Figure 6 we see very similar patterns: the top p
 D$asynchrony_phon <- D$time_beat - D$time_syl_L2
 Dsub_phon <- subset(D, (condition == "gesture"))
 
-model0_phon <- lme(asynchrony_phon~1, data = Dsub_phon, random =  list(~1|ppn, ~1|target), method = "ML", na.action = na.exclude)
+model0_phon <- lme(asynchrony_phon~1, data = Dsub_phon, random =  list(~1|ppn, ~1|target), 
+                   method = "ML", na.action = na.exclude)
 
 # make sure the 'L1_L2 match' is mapped onto the intercept
 Dsub_phon$stressdiff_cat_iMatch <- relevel(as.factor(Dsub_phon$stressdiff_cat),"L1_L2 match")
 
-model3_phon <- lme(asynchrony_phon~stressdiff_cat_iMatch, data = Dsub_phon, random =  list(~1|ppn, ~1|target), method = "ML", na.action = na.exclude)
+model3_phon <- lme(asynchrony_phon~stressdiff_cat_iMatch, data = Dsub_phon, random =  list(~1|ppn, ~1|target), 
+                   method = "ML", na.action = na.exclude)
 print(anova(model0_phon,model3_phon))
 print(summary(model3_phon))
 ```
@@ -604,11 +671,13 @@ This model confirms that gestures fell significantly later in time in trials whe
 
 Finally, note that the present exploratory analysis included all trials with a gesture, without considering how our learners pronounced the words. One might have argued that this exploratory analysis should not have found any evidence for a kinematic accent because the kinematic accent had opposite directions in 'correct' (ConfRQ.2A) vs. 'incorrect' productions (ConfRQ.2B). Perhaps that should have cancelled out any effect when considering all trials with a gesture, irrespective of the acoustics. However, one should consider that the data used in ConfRQ.2A included 53% of all stress-mismatching cognate trials, while ConfRQ.2B only included 27% of all stress-mismatching cognate trials. This accounts for why the present exploratory analysis is qualitatively similar to ConfRQ.2A.
 
-# Reproducibility
+## Reproducibility
+
 Below are the specific package versions we have used for our analyses.
+
 ```{r}
 # Save session info to a file
-sink("session_info_kinetics.txt")
+sink("session_info_SIM_SI.txt")
 sessionInfo()
 ```
 
