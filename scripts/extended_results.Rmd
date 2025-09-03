@@ -603,3 +603,12 @@ print(summary(model3_phon))
 This model confirms that gestures fell significantly later in time in trials where the native competitor syllable followed the foreign language target syllable. Conversely, gestures fell significantly earlier in time in trials where the native competitor syllable preceded the foreign language target syllable. Therefore, even when analyzing our data without making use of our stress score, we find evidence for a kinematic accent in learners' productions.
 
 Finally, note that the present exploratory analysis included all trials with a gesture, without considering how our learners pronounced the words. One might have argued that this exploratory analysis should not have found any evidence for a kinematic accent because the kinematic accent had opposite directions in 'correct' (ConfRQ.2A) vs. 'incorrect' productions (ConfRQ.2B). Perhaps that should have cancelled out any effect when considering all trials with a gesture, irrespective of the acoustics. However, one should consider that the data used in ConfRQ.2A included 53% of all stress-mismatching cognate trials, while ConfRQ.2B only included 27% of all stress-mismatching cognate trials. This accounts for why the present exploratory analysis is qualitatively similar to ConfRQ.2A.
+
+# Reproducibility
+Below are the specific package versions we have used for our analyses.
+```{r}
+# Save session info to a file
+sink("session_info_kinetics.txt")
+sessionInfo()
+```
+
