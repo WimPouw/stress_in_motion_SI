@@ -1,5 +1,5 @@
 ---
-title: "Foreign Language Learners Show a Kinematic Accent in Their Co-speech Hand Movements"
+title: "Extended Results: Foreign Language Learners Show a Kinematic Accent in Their Co-speech Hand Movements"
 description: | 
   Extended Results
 author:
@@ -10,41 +10,37 @@ author:
   affiliation: Donders Institute for Brain, Cognition and Behaviour, Radboud University
   affiliation_url: https://www.ru.nl/donders/
   orcid_id: 0000-0002-2628-7738
-  address: Thomas van Aquinolaan 4, 6525 AJ Nijmegen, The Netherlands
 - name: Marieke Hoetjes
+  email: marieke.hoetjes@ru.nl
   url: https://www.mariekehoetjes.nl/
-  affiliation: Center for Language Studies, Radboud University
-  affiliation_url: https://www.ru.nl/
-  #orcid_id: 
-- name: Doenja Hustin
   affiliation: Centre for Language Studies, Radboud University
   affiliation_url: https://www.ru.nl/
-  #orcid_id: 
+- name: Doenja Hustin
+  email: doenja.hustin@ru.nl
+  affiliation: Radboud University
+  affiliation_url: https://www.ru.nl/
 - name: Wim Pouw
+  email: w.pouw@tilburguniversity.edu
   url: https://wimpouw.com/
-  affiliation: Department of Computational Cognitive Science, Research Center for Cognitive Science & Artificial Intelligence, Tilburg University
-  affiliation_url: https://www.ru.nl/donders/
+  affiliation: Department of Computational Cognitive Science, Research Center for Cognitive Science & Artificial Intelligence, Tilburg University; Donders Institute for Brain, Cognition and Behaviour, Radboud University
+  affiliation_url: https://www.tilburguniversity.edu/
   orcid_id: 0000-0003-2729-6502
 - name: Lieke van Maastricht
+  email: lieke.vanmaastricht@ru.nl
   affiliation: Centre for Language Studies, Radboud University
   affiliation_url: https://www.ru.nl/cls/
-  #orcid_id: 
+date: "`r Sys.Date()`"
 output:
-  distill::distill_article:
+  bookdown::html_document2:
     toc: true
-    toc_depth: 2
-    toc_float: true
-# output: word_document
-# always_allow_html: true
-floatsintext: yes
-figurelist: no
-tablelist: no
-footnotelist: no
-linenumbers: yes
-mask: no
-draft: no
-noextraspace: yes
-link-citations: yes
+    toc_depth: 3
+    toc_float: 
+      collapsed: false
+      smooth_scroll: true
+    theme: flatly
+    highlight: tango
+bibliography: packages.bib
+csl: apa.csl
 ---
 
 ```{r setup, echo=FALSE, warning = FALSE, message = FALSE}
@@ -66,6 +62,14 @@ library(gridExtra)    #plotting
 library(stringr)      #for string
 library(readr)        #for string
 library(cowplot)      #for multipanel plots
+
+# Generate bibliography for all loaded packages plus base R
+knitr::write_bib(c(.packages(), 
+                   'ggplot2', 'plotly', 'RColorBrewer', 'wesanderson', 
+                   'ggbeeswarm', 'papaja', 'nlme', 'plyr', 'lsmeans', 
+                   'tidyr', 'lme4', 'simr', 'gridExtra', 'stringr', 
+                   'readr', 'cowplot', 'base'), 
+                 "packages.bib")
 ```
 
 
@@ -681,3 +685,6 @@ sink("session_info_SIM_SI.txt")
 sessionInfo()
 ```
 
+## References
+
+All analyses were conducted in R [@R-base]. Data visualization was performed using ggplot2 [@R-ggplot2] and plotly [@R-plotly]. Mixed-effects models were fitted using lme4 [@R-lme4] and nlme [@R-nlme]. Post-hoc comparisons used lsmeans [@R-lsmeans]. Data manipulation was performed with plyr [@R-plyr], tidyr [@R-tidyr], and stringr [@R-stringr]. Additional packages included RColorBrewer [@R-RColorBrewer], wesanderson [@R-wesanderson], ggbeeswarm [@R-ggbeeswarm], papaja [@R-papaja], simr [@R-simr], gridExtra [@R-gridExtra], readr [@R-readr], and cowplot [@R-cowplot].
